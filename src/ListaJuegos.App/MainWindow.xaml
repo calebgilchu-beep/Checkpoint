@@ -1,0 +1,12 @@
+﻿<Window x:Class="ListaJuegos.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="Checkpoint" Width="1360" Height="860" MinWidth="480" MinHeight="520"
+        Background="#0C0D10" WindowStartupLocation="CenterScreen" Icon="pack://application:,,,/app.ico"
+        AutomationProperties.Name="Checkpoint">
+    <Grid>
+        <wv2:WebView2 x:Name="Web" DefaultBackgroundColor="#0C0D10" AutomationProperties.Name="Checkpoint" />
+        <TextBlock x:Name="Fallback" Visibility="Collapsed" Margin="32" TextWrapping="Wrap" Foreground="White" FontSize="16" />
+    </Grid>
+</Window>

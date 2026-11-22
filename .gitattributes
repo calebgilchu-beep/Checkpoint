@@ -1,0 +1,2 @@
+# Los archivos se guardan tal cual (sin cambiar CRLF/LF): las pruebas comparan listas byte a byte
+* -text

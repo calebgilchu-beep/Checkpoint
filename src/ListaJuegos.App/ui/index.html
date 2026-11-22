@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es" data-type="software" data-radius="round" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="page-type" content="software">
+<meta name="site-kind" content="software">
+<title>Checkpoint</title>
+<meta name="description" content="Crea y edita tu lista de juegos completados, inconclusos y por jugar en .txt o .md.">
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/motion.css">
+<style>
+  /* Tokens que lee vendor/motion.css */
+  :root { --r-btn: 8px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Saltar a la lista de juegos</a>
+
+<div class="app" id="app">
+  <header class="topbar" role="banner">
+    <div class="appname">
+      <span class="appname__mark" aria-hidden="true"><svg class="i"><use href="icons/sprite.svg#gamepad-2"/></svg></span>
+      <div class="appname__file">
+        <strong id="fileName">Checkpoint</strong>
+        <span id="fileInfo">Sin archivo abierto</span>
+      </div>
+    </div>
+
+    <!-- Tres grupos: archivo (nueva, abrir, recientes) · guardar (botón partido con «Guardar como») · deshacer/rehacer -->
+    <div class="toolbar" role="toolbar" aria-label="Archivo y edición">
+      <div class="tgroup">
+        <button class="btn btn--ghost btn--icon" id="btnNew" title="Nueva lista (Ctrl+N)" aria-label="Nueva lista" aria-keyshortcuts="Control+N"><svg class="i"><use href="icons/sprite.svg#file-plus"/></svg></button>
+        <button class="btn btn--ghost" id="btnOpen" title="Abrir (Ctrl+O)" aria-keyshortcuts="Control+O"><svg class="i"><use href="icons/sprite.svg#folder-open"/></svg><span class="label-wide">Abrir</span></button>
+        <div class="menu opt">
+          <button class="btn btn--ghost btn--icon btn--caret" id="btnRecent" aria-haspopup="menu" aria-expanded="false" aria-controls="recentMenu" title="Archivos recientes" aria-label="Archivos recientes"><svg class="i i--sm"><use href="icons/sprite.svg#chevron-down"/></svg></button>
+          <div class="menu__list" id="recentMenu" role="menu" aria-label="Archivos recientes" hidden></div>
+        </div>
+      </div>
+      <div class="tgroup tgroup--split">
+        <button class="btn btn--primary" id="btnSave" title="Guardar (Ctrl+S)" aria-keyshortcuts="Control+S"><svg class="i"><use href="icons/sprite.svg#save"/></svg><span class="label-wide">Guardar</span></button>
+        <div class="menu opt">
+          <button class="btn btn--primary btn--icon btn--caret" id="btnSaveAs" aria-haspopup="menu" aria-expanded="false" aria-controls="saveAsMenu" title="Guardar como (Ctrl+Mayús+S)" aria-label="Guardar como"><svg class="i i--sm"><use href="icons/sprite.svg#chevron-down"/></svg></button>
+          <div class="menu__list" id="saveAsMenu" role="menu" aria-label="Guardar como" hidden>
+            <button role="menuitem" data-saveas="txt"><img class="brand" src="icons/text.svg" alt="">Guardar como texto (.txt)</button>
+            <button role="menuitem" data-saveas="md"><img class="brand" src="icons/markdown.svg" alt="">Guardar como Markdown (.md)</button>
+          </div>
+        </div>
+      </div>
+      <div class="tgroup">
+        <button class="btn btn--ghost btn--icon" id="btnUndo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer" aria-keyshortcuts="Control+Z"><svg class="i"><use href="icons/sprite.svg#undo-2"/></svg></button>
+        <button class="btn btn--ghost btn--icon" id="btnRedo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer" aria-keyshortcuts="Control+Y"><svg class="i"><use href="icons/sprite.svg#redo-2"/></svg></button>
+      </div>
+    </div>
+
+    <span class="grow"></span>
+
+    <div class="search" role="search">
+      <svg class="i i--sm muted" aria-hidden="true"><use href="icons/sprite.svg#search"/></svg>
+      <label for="q" class="sr-only">Buscar juegos en todas las secciones</label>
+      <input id="q" type="search" placeholder="Buscar juego, plataforma, nota…" autocomplete="off" aria-keyshortcuts="Control+F">
+    </div>
+    <button class="btn btn--ghost" id="btnText" aria-pressed="false" title="Ver el texto del archivo"><svg class="i"><use href="icons/sprite.svg#file-text"/></svg><span class="label-wide">Texto</span></button>
+    <button class="btn btn--ghost" id="btnStats" aria-pressed="false" title="Estadísticas y resumen del año (Ctrl+E)" aria-keyshortcuts="Control+E"><svg class="i"><use href="icons/sprite.svg#chart-column"/></svg><span class="label-wide">Estadísticas</span></button>
+    <button class="btn btn--secondary" id="btnImport"><svg class="i"><use href="icons/sprite.svg#download"/></svg><span class="label-wide">Importar</span></button>
+    <button class="btn btn--ghost btn--icon" id="btnSettings" title="Ajustes" aria-label="Ajustes"><svg class="i"><use href="icons/sprite.svg#settings"/></svg></button>
+    <button class="btn btn--ghost btn--icon" id="btnFull" aria-pressed="false" title="Pantalla completa (F11)" aria-label="Pantalla completa" aria-keyshortcuts="F11"><svg class="i"><use href="icons/sprite.svg#maximize"/></svg></button>
+    <button class="btn btn--ghost btn--icon" id="btnHelp" title="Ayuda y atajos (F1)" aria-label="Ayuda y atajos de teclado" aria-keyshortcuts="F1"><svg class="i"><use href="icons/sprite.svg#circle-question-mark"/></svg></button>
+  </header>
+
+  <!-- Aviso no bloqueante: el archivo ha cambiado en el disco y hay cambios sin guardar (no roba el foco) -->
+  <div id="extBar" class="extbar" role="region" aria-label="Cambios en el disco" hidden>
+    <svg class="i" aria-hidden="true"><use href="icons/sprite.svg#refresh-cw"/></svg>
+    <p id="extText">El archivo ha cambiado fuera de Checkpoint.</p>
+    <div class="extbar__actions">
+      <button class="btn btn--secondary" id="btnExtReload">Recargar desde disco</button>
+      <button class="btn btn--ghost" id="btnExtKeep">Mantener mis cambios</button>
+    </div>
+  </div>
+
+  <div id="docHead" class="dochead" hidden>
+    <h1 class="sr-only" id="docH1">Checkpoint</h1>
+    <div class="dochead__title">
+      <label for="headerInput" class="sr-only">Título de la lista</label>
+      <input id="headerInput" type="text" autocomplete="off" spellcheck="false">
+      <div class="dochead__meta" id="docMeta"></div>
+    </div>
+    <div class="stats" id="stats" aria-label="Resumen"></div>
+  </div>
+
+  <div id="tabsBar" class="tabsbar" hidden>
+    <div class="tabs" role="tablist" aria-label="Secciones de la lista" id="tabs"></div>
+    <div class="menu">
+      <button class="btn btn--ghost btn--sm" id="btnSectionMenu" aria-haspopup="menu" aria-expanded="false" aria-controls="sectionMenu"><svg class="i i--sm" aria-hidden="true"><use href="icons/sprite.svg#ellipsis"/></svg><span class="label-wide">Sección</span><span class="sr-only"> (acciones)</span></button>
+      <div class="menu__list right" id="sectionMenu" role="menu" aria-label="Acciones de sección" hidden>
+        <button role="menuitem" data-sec="add"><svg class="i"><use href="icons/sprite.svg#folder-plus"/></svg>Nueva sección…</button>
+        <button role="menuitem" data-sec="rename"><svg class="i"><use href="icons/sprite.svg#pencil"/></svg>Renombrar esta sección…</button>
+        <button role="menuitem" data-sec="left"><svg class="i"><use href="icons/sprite.svg#arrow-up"/></svg>Mover a la izquierda</button>
+        <button role="menuitem" data-sec="right"><svg class="i"><use href="icons/sprite.svg#arrow-down"/></svg>Mover a la derecha</button>
+        <button role="menuitem" data-sec="divider"><svg class="i"><use href="icons/sprite.svg#info"/></svg>Añadir nota separadora…</button>
+        <hr>
+        <button role="menuitem" data-sec="delete" class="btn--danger"><svg class="i"><use href="icons/sprite.svg#trash-2"/></svg>Eliminar esta sección…</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace" id="workspace">
+    <main id="main" class="listpane" tabindex="-1" aria-label="Juegos"></main>
+    <aside class="detail" id="detail" aria-label="Detalles del juego"></aside>
+  </div>
+
+  <footer class="statusbar">
+    <span id="statusLeft"></span>
+    <span id="statusTtb" class="statusbar__ttb" hidden></span>
+    <span class="grow"></span>
+    <!-- Ayuda de botones: solo con un mando conectado -->
+    <span id="statusPad" class="statusbar__pad" hidden>
+      <span><b class="padbtn">A</b>Abrir</span><span><b class="padbtn">B</b>Cerrar</span><span><b class="padbtn">Y</b>Completado hoy</span><span><b class="padbtn">LB</b><b class="padbtn">RB</b>Sección</span>
+    </span>
+    <span id="statusRight"></span>
+    <span id="statusVer" class="statusbar__ver"></span>
+  </footer>
+</div>
+
+<div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- Diálogos -->
+<dialog id="dlgPrompt" aria-labelledby="promptTitle">
+  <form method="dialog" id="promptForm">
+    <div class="dlg__head"><h2 id="promptTitle">Nombre</h2></div>
+    <div class="dlg__body" id="promptBody"></div>
+    <div class="dlg__foot">
+      <button class="btn btn--secondary" value="cancel" formnovalidate>Cancelar</button>
+      <button class="btn btn--primary" value="ok" id="promptOk">Aceptar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgConfirm" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+  <form method="dialog">
+    <div class="dlg__head"><h2 id="confirmTitle">¿Seguro?</h2></div>
+    <div class="dlg__body"><p id="confirmText" class="lead"></p></div>
+    <div class="dlg__foot" id="confirmFoot"></div>
+  </form>
+</dialog>
+
+<dialog id="dlgImport" class="wide" aria-labelledby="importTitle"></dialog>
+<dialog id="dlgSettings" class="wide" aria-labelledby="settingsTitle"></dialog>
+<dialog id="dlgHelp" class="wide" aria-labelledby="helpTitle"></dialog>
+<dialog id="dlgWelcome" class="wide welcome" aria-labelledby="welcomeTitle" aria-describedby="welcomeStep"></dialog>
+<dialog id="dlgResume" aria-labelledby="resumeTitle" aria-describedby="resumeText"></dialog>
+<dialog id="dlgNext"class="wide" aria-labelledby="nextTitle" aria-describedby="nextLead"></dialog>
+
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

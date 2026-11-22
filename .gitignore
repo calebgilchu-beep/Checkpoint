@@ -1,0 +1,11 @@
+# Compilación y publicación (el .exe va en las Releases de GitHub, no en el código)
+bin/
+obj/
+publish/
+.vs/
+*.user
+TestResults/
+
+# Copias que deja la app y temporales
+*.bak
+*.tmp
