@@ -44,6 +44,7 @@ public static class RegistryLaunchers
     public static ConnectorResult ScanGog()
     {
         var res = new ConnectorResult { Source = "gog" };
+        if (!OperatingSystem.IsWindows()) { res.Ok = false; res.Message = "GOG Galaxy solo existe en Windows."; return res; }
         using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\GOG.com\Games");
         if (k == null) { res.Ok = false; res.Message = "GOG Galaxy no tiene juegos instalados en este PC."; return res; }
         foreach (var sub in k.GetSubKeyNames())
@@ -60,6 +61,7 @@ public static class RegistryLaunchers
     {
         var res = new ConnectorResult { Source = source };
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!OperatingSystem.IsWindows()) { res.Ok = false; res.Message = $"{platform} solo existe en Windows."; return res; }
         foreach (var hive in new[] { Registry.LocalMachine, Registry.CurrentUser })
             foreach (var path in new[] { @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" })
             {

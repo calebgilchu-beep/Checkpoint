@@ -11,7 +11,7 @@
     <Product>Checkpoint</Product>
     <AssemblyTitle>Checkpoint</AssemblyTitle>
     <Description>Crea y edita listas de juegos en .txt y .md</Description>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
     <!-- Program.Main decide entre las órdenes de consola (add, complete, stats, help) y la ventana antes de iniciar WPF -->

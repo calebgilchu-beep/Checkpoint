@@ -122,6 +122,16 @@ public static class SteamLocal
 {
     public static string? FindSteamPath()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            foreach (var c in new[] { ".steam/steam", ".local/share/Steam", ".var/app/com.valvesoftware.Steam/.local/share/Steam", "snap/steam/common/.local/share/Steam" })
+            {
+                var d = Path.Combine(home, c);
+                if (Directory.Exists(Path.Combine(d, "steamapps"))) return d;
+            }
+            return null;
+        }
         var p = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) as string
                 ?? Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath", null) as string;
         return p != null && Directory.Exists(p) ? p.Replace('/', '\\') : null;

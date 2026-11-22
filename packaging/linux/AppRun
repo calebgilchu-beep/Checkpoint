@@ -1,0 +1,7 @@
+#!/bin/sh
+# Punto de entrada del AppImage. WebKitGTK y GTK 3 son del sistema (no van dentro).
+HERE="$(dirname "$(readlink -f "$0")")"
+export APPDIR="${APPDIR:-$HERE}"
+# WebKitGTK con algunos controladores (NVIDIA, máquinas virtuales) pinta en blanco con DMA-BUF; el usuario puede cambiarlo.
+export WEBKIT_DISABLE_DMABUF_RENDERER="${WEBKIT_DISABLE_DMABUF_RENDERER:-1}"
+exec "$HERE/usr/bin/Checkpoint" "$@"

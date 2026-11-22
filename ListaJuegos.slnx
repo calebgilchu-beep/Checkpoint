@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Checkpoint.Linux/Checkpoint.Linux.csproj" />
     <Project Path="src/ListaJuegos.App/ListaJuegos.App.csproj" />
     <Project Path="src/ListaJuegos.Core/ListaJuegos.Core.csproj" />
   </Folder>

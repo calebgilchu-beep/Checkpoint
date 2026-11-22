@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Checkpoint
+GenericName=Game list editor
+GenericName[es]=Editor de listas de juegos
+GenericName[pt]=Editor de listas de jogos
+Comment=Create and edit game lists in .txt and .md
+Comment[es]=Crea y edita listas de juegos en .txt y .md
+Comment[pt]=Crie e edite listas de jogos em .txt e .md
+Exec=Checkpoint %f
+Icon=checkpoint
+Terminal=false
+Categories=Utility;Game;
+MimeType=text/plain;text/markdown;
+StartupWMClass=Checkpoint

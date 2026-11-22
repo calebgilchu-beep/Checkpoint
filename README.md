@@ -7,6 +7,22 @@ App de Windows para crear y editar tus listas de juegos (`.txt` y `.md`) con el 
 `publish\Checkpoint.exe`. Es un solo archivo y no necesita instalar nada: usa WebView2, que ya viene
 con Windows 11. También puedes arrastrar un `.txt` o un `.md` al `.exe` o a la ventana.
 
+**Linux:** descarga `Checkpoint-<versión>-x86_64.AppImage` (PC) o `Checkpoint-<versión>-aarch64.AppImage`
+(ARM: Raspberry Pi 4/5, portátiles ARM) de las [Releases](https://github.com/calebgilchu-beep/Checkpoint/releases),
+dale permiso de ejecución y ábrelo:
+
+```
+chmod +x Checkpoint-*.AppImage
+./Checkpoint-1.2.0-x86_64.AppImage
+```
+
+Necesita WebKitGTK 4.1 y libfuse2 del sistema. En Debian/Ubuntu:
+`sudo apt install libwebkit2gtk-4.1-0 libnotify4 libfuse2t64` (en Ubuntu 22.04, `libfuse2`). En Fedora:
+`sudo dnf install webkit2gtk4.1 libnotify fuse-libs`. La interfaz, los archivos y las órdenes de consola son
+los mismos que en Windows. Diferencias: las claves de las APIs se cifran con AES-GCM y una clave propia en
+`~/.config/ListaJuegos/key` (en lugar de DPAPI); GOG, EA y Ubisoft solo se detectan en Windows; Steam se
+busca en `~/.steam/steam`, `~/.local/share/Steam` y en las versiones Flatpak y Snap.
+
 ## Qué hace
 
 - **Secciones en pestañas:** Completados, Inconclusos y Por jugar, además de Jugando ahora,
@@ -184,12 +200,16 @@ Checkpoint.exe --help
 ```
 src/ListaJuegos.Core   formato .txt/.md (TxtFormat, MdFormat, EntryLine), campos {…}, conectores, sagas
 src/ListaJuegos.App    ventana WPF + WebView2; la interfaz (ui/) va dentro del .exe y se sirve en https://app.lj/
+src/Checkpoint.Linux   ventana de Linux con Photino (WebKitGTK); comparte Bridge, ajustes y ui/ con la de Windows
+packaging/linux        AppRun, .desktop, icono y build-appimage.sh (lo usa .github/workflows/linux-appimage.yml)
 tests/                 217 pruebas xUnit (LJ_NET=1 activa las que usan la tienda real de Steam)
 tools/                 pruebas de punta a punta con UI Automation, capturas, icono y sprite
 ```
 
 - Compilar y probar: `dotnet test`.
 - Publicar: `dotnet publish src/ListaJuegos.App -c Release -o publish`.
+- AppImage de Linux: `bash packaging/linux/build-appimage.sh x86_64` (o `aarch64`) en Linux, o el workflow
+  «Linux AppImage» de GitHub Actions, que compila cada arquitectura en su propio runner y la prueba con Xvfb.
 - La interfaz se puede abrir en un navegador con datos de prueba (`ui/index.html`, servido por http).
   `LJ_DEVTOOLS=1` activa las herramientas de desarrollo dentro de la app.
 - **Diseño:** estética de biblioteca de juegos (Playnite, Backloggd, Steam).

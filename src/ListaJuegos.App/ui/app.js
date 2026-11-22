@@ -1,9 +1,11 @@
 /* Checkpoint — lógica de la interfaz (sin dependencias). */
 'use strict';
 
-// ───────────────────────────── Puente con la app de Windows ─────────────────────────────
+// ───────────────────────────── Puente con la app (WebView2 en Windows, Photino en Linux) ─────────────────────────────
 const Host = (() => {
-  const wv = window.chrome && window.chrome.webview;
+  const px = window.external && typeof window.external.sendMessage === 'function' ? window.external : null;
+  const wv = (window.chrome && window.chrome.webview)
+    || (px && { postMessage: m => px.sendMessage(m), addEventListener: (_, f) => px.receiveMessage(d => f({ data: d })) });
   const pending = new Map();
   const listeners = {};
   let seq = 0;
@@ -1806,6 +1808,7 @@ function localCover(id) {
   const u = x && S.covers.get(coverKey(x.e));
   if (!u) return null;
   if (u.startsWith(`https://covers.lj/`)) return 'cache/covers/' + u.slice('https://covers.lj/'.length);
+  if (u.startsWith(location.origin + '/cache/covers/')) return u.slice(location.origin.length + 1);   // Linux: ya es del mismo origen
   return /^mock\//.test(u) ? u : null;   // nunca una dirección de Internet
 }
 function loadImg(src) {

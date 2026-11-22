@@ -3,7 +3,7 @@
 #ifndef SrcExe
   #define SrcExe "..\publish\Checkpoint.exe"
 #endif
-#define AppVer "1.1.0"
+#define AppVer "1.2.0"
 
 [Setup]
 AppId={{B7C1E2A4-6F3D-4E8B-9A21-C4E5D7F80A11}

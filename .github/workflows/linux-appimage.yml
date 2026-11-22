@@ -1,0 +1,75 @@
+name: Linux AppImage
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  appimage:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-0 libnotify4 libfuse2t64 xvfb imagemagick file
+
+      - name: Crear AppImage
+        run: bash packaging/linux/build-appimage.sh ${{ matrix.arch }} dist
+
+      - name: Comprobar
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+        run: |
+          set -euo pipefail
+          A=$(ls dist/*.AppImage)
+          chmod +x "$A"
+          file "$A"
+          "$A" --help | head -5
+          cp src/ListaJuegos.App/ui/mock/sample.txt /tmp/lista.txt
+          "$A" --stats /tmp/lista.txt
+          "$A" --stats --json /tmp/lista.txt | python3 -m json.tool > /dev/null
+          # Ventana: arranca bajo Xvfb, se deja 15 s y se hace una captura.
+          export HOME=$(mktemp -d)
+          xvfb-run -a -s "-screen 0 1440x900x24" bash -c '
+            "'"$A"'" /tmp/lista.txt > /tmp/app.log 2>&1 &
+            PID=$!
+            sleep 15
+            import -window root /tmp/screenshot-${{ matrix.arch }}.png || true
+            if ! kill -0 $PID; then echo "La app se ha cerrado"; cat /tmp/app.log; exit 1; fi
+            kill $PID
+          '
+          cat /tmp/app.log || true
+          sha256sum "$A" | tee "$A.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Checkpoint-${{ matrix.arch }}
+          path: |
+            dist/*.AppImage
+            dist/*.sha256
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captura-${{ matrix.arch }}
+          path: /tmp/screenshot-*.png
+          if-no-files-found: ignore

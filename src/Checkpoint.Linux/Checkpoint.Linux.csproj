@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Checkpoint para Linux: la misma interfaz (ui/) y el mismo Bridge que la app de Windows, en una ventana de
+       Photino (WebKitGTK). Se empaqueta como AppImage con packaging/linux/build-appimage.sh. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Checkpoint</AssemblyName>
+    <RootNamespace>ListaJuegos.App</RootNamespace>
+    <Product>Checkpoint</Product>
+    <AssemblyTitle>Checkpoint</AssemblyTitle>
+    <Description>Crea y edita listas de juegos en .txt y .md</Description>
+    <Version>1.2.0</Version>
+    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+    <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ListaJuegos.Core\ListaJuegos.Core.csproj" />
+    <PackageReference Include="Photino.NET" Version="4.0.16" />
+  </ItemGroup>
+
+  <!-- Código compartido con la app de Windows -->
+  <ItemGroup>
+    <Compile Include="..\ListaJuegos.App\Bridge.cs" Link="Shared\Bridge.cs" />
+    <Compile Include="..\ListaJuegos.App\AppSettings.cs" Link="Shared\AppSettings.cs" />
+    <Compile Include="..\ListaJuegos.App\Lang.cs" Link="Shared\Lang.cs" />
+    <Compile Include="..\ListaJuegos.App\IHostUi.cs" Link="Shared\IHostUi.cs" />
+  </ItemGroup>
+
+  <!-- La misma interfaz que en Windows, dentro del ejecutable -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\ListaJuegos.App\ui\**\*" Exclude="..\ListaJuegos.App\ui\mock\**;..\ListaJuegos.App\ui\.taste-skill\**" LogicalName="ui/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

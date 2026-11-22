@@ -2,20 +2,18 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
-using System.Windows;
 using ListaJuegos.Core;
 using ListaJuegos.Core.Connectors;
 using ListaJuegos.Core.Stats;
 using ListaJuegos.Core.Suggest;
 using ListaJuegos.Core.Sync;
-using Microsoft.Win32;
 
 namespace ListaJuegos.App;
 
 /// <summary>Órdenes que llegan de la interfaz (app.js) y sus respuestas.</summary>
 public sealed class Bridge
 {
-    private readonly MainWindow _win;
+    private readonly IHostUi _win;
     private readonly AppSettings _s;
     private readonly HttpClient _http;
     private readonly CoverService _covers;
@@ -23,7 +21,7 @@ public sealed class Bridge
     private FileChangeWatcher? _watch;
     public string? StartupFile { get; set; }
 
-    public Bridge(MainWindow win, AppSettings settings, HttpClient http)
+    public Bridge(IHostUi win, AppSettings settings, HttpClient http)
     {
         _win = win;
         _s = settings;
@@ -61,14 +59,14 @@ public sealed class Bridge
                 var path = Str(a, "path");
                 if (path == null)
                 {
-                    var dlg = new OpenFileDialog
+                    path = _win.PickOpen(Lang.T("Abrir lista de juegos", "Open game list", "Abrir lista de jogos"), new[]
                     {
-                        Title = Lang.T("Abrir lista de juegos", "Open game list", "Abrir lista de jogos"),
-                        Filter = Lang.T("Listas de juegos", "Game lists", "Listas de jogos") + " (*.txt; *.md)|*.txt;*.md;*.markdown|" + Lang.T("Texto", "Text", "Texto") + " (*.txt)|*.txt|Markdown (*.md)|*.md;*.markdown|" + Lang.T("Todos los archivos", "All files", "Todos os arquivos") + "|*.*",
-                        InitialDirectory = InitialDir()
-                    };
-                    if (dlg.ShowDialog(_win) != true) return null;
-                    path = dlg.FileName;
+                        new FileFilter(Lang.T("Listas de juegos", "Game lists", "Listas de jogos"), "txt", "md", "markdown"),
+                        new FileFilter(Lang.T("Texto", "Text", "Texto"), "txt"),
+                        new FileFilter("Markdown", "md", "markdown"),
+                        new FileFilter(Lang.T("Todos los archivos", "All files", "Todos os arquivos"), "*")
+                    }, InitialDir());
+                    if (path == null) return null;
                 }
                 if (!File.Exists(path)) throw new UserError("Ese archivo ya no existe.");
                 return OpenPath(path);
@@ -84,19 +82,11 @@ public sealed class Bridge
                 {
                     var kind = asKind ?? (current != null ? (DocumentService.KindFromPath(current) == FileKind.Md ? "md" : "txt") : "txt");
                     var baseName = current != null ? Path.GetFileNameWithoutExtension(current) : "Juegos que me he pasado";
-                    var dlg = new SaveFileDialog
-                    {
-                        Title = Lang.T("Guardar lista de juegos", "Save game list", "Salvar lista de jogos"),
-                        Filter = Lang.T("Texto", "Text", "Texto") + " (*.txt)|*.txt|Markdown (*.md)|*.md",
-                        FilterIndex = kind == "md" ? 2 : 1,
-                        DefaultExt = kind == "md" ? ".md" : ".txt",
-                        AddExtension = true,
-                        FileName = baseName + (kind == "md" ? ".md" : ".txt"),
-                        InitialDirectory = current != null ? Path.GetDirectoryName(current) : InitialDir(),
-                        OverwritePrompt = true
-                    };
-                    if (dlg.ShowDialog(_win) != true) return null;
-                    path = dlg.FileName;
+                    path = _win.PickSave(Lang.T("Guardar lista de juegos", "Save game list", "Salvar lista de jogos"),
+                        new[] { new FileFilter(Lang.T("Texto", "Text", "Texto"), "txt"), new FileFilter("Markdown", "md") },
+                        kind == "md" ? 2 : 1, kind == "md" ? ".md" : ".txt", baseName + (kind == "md" ? ".md" : ".txt"),
+                        (current != null ? Path.GetDirectoryName(current) : null) ?? InitialDir());
+                    if (path == null) return null;
                 }
                 if (_s.UpdateDate) DocumentService.TouchHeaderDate(doc, DateTime.Now);
                 ApplyMarkdownDefaults(doc);
@@ -166,7 +156,7 @@ public sealed class Bridge
             {
                 var url = Str(a, "url");
                 if (url != null && Uri.TryCreate(url, UriKind.Absolute, out var u) && (u.Scheme == "https" || u.Scheme == "http"))
-                    Process.Start(new ProcessStartInfo(u.AbsoluteUri) { UseShellExecute = true });
+                    _win.OpenUrl(u.AbsoluteUri);
                 return null;
             }
 
@@ -179,7 +169,7 @@ public sealed class Bridge
                     {
                         string? f = null;
                         try { f = await _covers.ResolveAsync(title, steam, xbox, null, sgdb); } catch { /* sin portada */ }
-                        _win.PostEvent("cover", new { key, url = f != null ? $"https://{MainWindow.CoversHost}/{Uri.EscapeDataString(f)}" : null });
+                        _win.PostEvent("cover", new { key, url = f != null ? _win.CoverUrl(f) : null });
                     });
                 }
                 return null;
@@ -340,18 +330,11 @@ public sealed class Bridge
         var invalid = Path.GetInvalidFileNameChars();
         var safe = string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c)).Trim();
         if (!safe.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) safe += ".png";
-        var dlg = new SaveFileDialog
-        {
-            Title = Lang.T("Guardar imagen del resumen", "Save summary image", "Salvar imagem do resumo"),
-            Filter = Lang.T("Imagen PNG", "PNG image", "Imagem PNG") + " (*.png)|*.png",
-            DefaultExt = ".png",
-            AddExtension = true,
-            FileName = safe,
-            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-            OverwritePrompt = true
-        };
-        if (dlg.ShowDialog(_win) != true) return null;
-        var path = dlg.FileName;
+        var pics = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        var path = _win.PickSave(Lang.T("Guardar imagen del resumen", "Save summary image", "Salvar imagem do resumo"),
+            new[] { new FileFilter(Lang.T("Imagen PNG", "PNG image", "Imagem PNG"), "png") }, 1, ".png", safe,
+            Directory.Exists(pics) ? pics : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        if (path == null) return null;
         var dir = Path.GetDirectoryName(Path.GetFullPath(path))!;
         var tmp = Path.Combine(dir, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
         File.WriteAllBytes(tmp, bytes);
@@ -453,7 +436,7 @@ public sealed class Bridge
                 if (g.LocalImage != null && File.Exists(g.LocalImage))
                 {
                     var name = "local_" + string.Concat((g.StoreId ?? g.Title).Select(c => char.IsLetterOrDigit(c) ? c : '_')) + Path.GetExtension(g.LocalImage);
-                    try { File.Copy(g.LocalImage, Path.Combine(CoversFolder, name), true); thumb = $"https://{MainWindow.CoversHost}/{name}"; } catch (IOException) { }
+                    try { File.Copy(g.LocalImage, Path.Combine(CoversFolder, name), true); thumb = _win.CoverUrl(name); } catch (IOException) { }
                 }
                 thumb ??= g.CoverUrl;
                 return new

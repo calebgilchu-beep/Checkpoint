@@ -83,6 +83,42 @@ public sealed class AppSettings
     internal static readonly string[] PlainKeyNames = { "steamKey", "xblKey", "sgdbKey", "raKey", "igdbSecret" };
 
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("ListaJuegos.v1");
+#if LINUX
+    // Linux: no hay DPAPI. AES-GCM con una clave aleatoria propia del usuario (archivo con permisos 600).
+    private static byte[] LinuxKey()
+    {
+        var f = Path.Combine(Folder, "key");
+        if (File.Exists(f)) { var k = File.ReadAllBytes(f); if (k.Length == 32) return k; }
+        Directory.CreateDirectory(Folder);
+        var key = RandomNumberGenerator.GetBytes(32);
+        File.WriteAllBytes(f, key);
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(f, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        return key;
+    }
+    private static string? Protect(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        var plain = Encoding.UTF8.GetBytes(s.Trim());
+        var nonce = RandomNumberGenerator.GetBytes(12);
+        var tag = new byte[16];
+        var cipher = new byte[plain.Length];
+        using (var aes = new AesGcm(LinuxKey(), 16)) aes.Encrypt(nonce, plain, cipher, tag, Entropy);
+        return Convert.ToBase64String([.. nonce, .. tag, .. cipher]);
+    }
+    private static string? Unprotect(string? s)
+    {
+        if (string.IsNullOrEmpty(s)) return null;
+        try
+        {
+            var all = Convert.FromBase64String(s);
+            if (all.Length < 28) return null;
+            var plain = new byte[all.Length - 28];
+            using (var aes = new AesGcm(LinuxKey(), 16)) aes.Decrypt(all.AsSpan(0, 12), all.AsSpan(28), all.AsSpan(12, 16), plain, Entropy);
+            return Encoding.UTF8.GetString(plain);
+        }
+        catch (Exception e) when (e is CryptographicException or FormatException or IOException) { return null; }
+    }
+#else
     private static string? Protect(string? s) =>
         string.IsNullOrWhiteSpace(s) ? null : Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(s.Trim()), Entropy, DataProtectionScope.CurrentUser));
     private static string? Unprotect(string? s)
@@ -91,6 +127,7 @@ public sealed class AppSettings
         try { return Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(s), Entropy, DataProtectionScope.CurrentUser)); }
         catch (Exception e) when (e is CryptographicException or FormatException) { return null; }
     }
+#endif
 
     public void AddRecent(string path)
     {
