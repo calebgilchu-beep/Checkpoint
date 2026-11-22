@@ -9,3 +9,6 @@ TestResults/
 # Copias que deja la app y temporales
 *.bak
 *.tmp
+
+# Notas internas de desarrollo (solo en este PC)
+HANDOFF_CONTEXT.md
